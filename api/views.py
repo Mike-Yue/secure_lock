@@ -44,6 +44,13 @@ class LockViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         return Lock.objects.filter(users__id=user.id)
+    
+    def create(self, request, *args, **kwargs):
+        user = self.request.user
+        lock_id = self.request.data['lock_id']
+        new_lock = Lock.objects.create(lock_id=lock_id, master_user=user)
+        new_lock.users.set([user])
+        return Response(status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

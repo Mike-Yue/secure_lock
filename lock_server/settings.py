@@ -92,8 +92,12 @@ WSGI_APPLICATION = 'lock_server.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'securelock',
+        'USER': 'postgres',
+        'PASSWORD': 'cpen442!',
+        'HOST': os.environ.get('TANTALUS_POSTGRESQL_HOST', 'localhost'),
+        'PORT': os.environ.get('TANTALUS_POSTGRESQL_PORT', '5432'),
     }
 }
 

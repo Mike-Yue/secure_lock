@@ -1,0 +1,1 @@
+web: gunicorn lock_server.wsgi --log-file -

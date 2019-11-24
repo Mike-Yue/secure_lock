@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
 ]
 
+AUTH_USER_MODEL = 'api.LockUser'
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.BasicAuthentication',

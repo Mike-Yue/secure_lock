@@ -1,6 +1,5 @@
-from django.contrib.auth.models import User
 from django.http import HttpResponseForbidden, HttpResponse
-from api.models import Lock, Code
+from api.models import Lock, Code, LockUser
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from api.serializers import UserSerializerRead, UserSerializerWrite, LockSerializer, LockSerializerCreate, CodeSerializer
@@ -20,7 +19,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return User.objects.filter(id=user.id)
+        return LockUser.objects.filter(id=user.id)
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:

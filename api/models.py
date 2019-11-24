@@ -1,11 +1,16 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 import datetime
 
 def validate_date(expiry_time):
     if expiry_time < datetime.datetime.now(datetime.timezone.utc):
         raise ValidationError("Expiry Time cannot be in the past!")
+
+class LockUser(AbstractUser):
+
+    def __str__(self):
+        return self.email
 
 class Lock(models.Model):
 
@@ -19,14 +24,14 @@ class Lock(models.Model):
     )
 
     master_user = models.ForeignKey(
-        User,
+        LockUser,
         related_name="master_user",
         on_delete=models.CASCADE,
         null=True,
     )
 
     users = models.ManyToManyField(
-        User,
+        LockUser,
         related_name="users",
         blank=True
     ) 

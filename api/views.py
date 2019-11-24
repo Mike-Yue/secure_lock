@@ -57,6 +57,9 @@ class LockViewSet(viewsets.ModelViewSet):
 def createCode(request):
     try:
         target_lock = Lock.objects.get(lock_id=request.data['lock_id'])
+        codes = target_lock.code_set.all()
+        if len(list(codes)) != 0:
+            return Response({"Message": "Your code is: {}".format(str(list(codes)[0]).zfill(4))}, status=status.HTTP_200_OK)
         if request.user in target_lock.users.all():
             #Need to implement custom expiry time
             code_generator = secrets.SystemRandom()

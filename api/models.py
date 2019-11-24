@@ -23,6 +23,11 @@ class Lock(models.Model):
         null=False,
     )
 
+    display_name = models.CharField(
+        max_length=250,
+        blank=True,
+    )
+
     master_user = models.ForeignKey(
         LockUser,
         related_name="master_user",

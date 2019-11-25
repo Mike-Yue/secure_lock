@@ -59,3 +59,19 @@ class Code(models.Model):
         null=True,
         validators=[validate_date]
     )
+
+    created_by = models.OneToOneField(
+        LockUser,
+        related_name="created_by",
+        on_delete=models.CASCADE,
+        null=True,
+    )
+
+    creation_time = models.DateTimeField(
+        null=True,
+    )
+
+    used_at_time = models.DateTimeField(
+        null=True,
+    )
+

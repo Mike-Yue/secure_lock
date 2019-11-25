@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 import secrets
 import datetime
+from datetime import timezone
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -58,13 +59,21 @@ def createCode(request):
     try:
         target_lock = Lock.objects.get(lock_id=request.data['lock_id'])
         codes = target_lock.code_set.all()
-        if len(list(codes)) != 0:
-            return Response({"Message": "Your code is: {}".format(str(list(codes)[0]).zfill(4))}, status=status.HTTP_200_OK)
+        for code in codes:
+            if code.expiry_time > datetime.datetime.now(timezone.utc) and code.used_at_time is None:
+                return Response({"Message": "Your code is: {}".format(code.zfill(4))}, status=status.HTTP_200_OK)
         if request.user in target_lock.users.all():
             #Need to implement custom expiry time
             code_generator = secrets.SystemRandom()
             code = code_generator.randint(0,9999)
-            temp = Code.objects.create(code=code, lock=target_lock, expiry_time=request.data['expiry_time'])
+            temp = Code.objects.create(
+                code=code, 
+                lock=target_lock,
+                expiry_time=request.data['expiry_time'], 
+                created_by=request.user, 
+                creation_time=datetime.datetime.now(timezone.utc),
+                used_at_time=None,
+                )
             return Response({"Message": "Your code is: {}".format(str(code).zfill(4))}, status=status.HTTP_200_OK)
     except:
         return Response({"Error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
@@ -81,7 +90,8 @@ def validate(request):
             target_lock = Lock.objects.get(lock_id=lock_id)
         except:
             return Response({"Error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
-        if target_code.lock == target_lock:
-            target_code.delete()
+        if target_code.lock == target_lock and target_code.used_at_time is None and target_code.expiry_time > datetime.datetime.now(timezone.utc):
+            target_code.used_at_time = datetime.datetime.now(timezone.utc)
+            target_code.save()
             return Response({"Message": "Code is valid"}, status=status.HTTP_200_OK)
         return Response({"Error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)

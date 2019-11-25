@@ -42,6 +42,8 @@ class LockSerializerCreate(serializers.ModelSerializer):
 
 
 class CodeSerializer(serializers.ModelSerializer):
+    created_by = UserSerializerRead(read_only=True)
+    lock = LockSerializer(read_only=True)
     class Meta:
         model = Code
         fields = "__all__"

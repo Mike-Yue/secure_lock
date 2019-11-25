@@ -60,7 +60,11 @@ class Code(models.Model):
         validators=[validate_date]
     )
 
-    created_by = models.OneToOneField(
+    expired = models.BooleanField(
+        default=False,
+    )
+
+    created_by = models.ForeignKey(
         LockUser,
         related_name="created_by",
         on_delete=models.CASCADE,

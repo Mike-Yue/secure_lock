@@ -12,6 +12,7 @@ from rest_framework.decorators import api_view, permission_classes
 import secrets
 import datetime
 from datetime import timezone
+from django.db import IntegrityError
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -49,34 +50,39 @@ class LockViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         user = self.request.user
         lock_id = self.request.data['lock_id']
-        new_lock = Lock.objects.create(lock_id=lock_id, master_user=user)
+        new_lock = Lock.objects.create(lock_id=lock_id, master_user=user, display_name=request.data['display_name'])
         new_lock.users.set([user])
         return Response(status=status.HTTP_200_OK)
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def createCode(request):
-    try:
+
+class CodeViewSet(viewsets.ModelViewSet):
+
+    permission_classes = (IsAuthenticated, )
+    serializer_class = CodeSerializer
+
+    def get_queryset(self):
+        return Code.objects.filter(created_by=self.request.user, expired=False)
+    
+    def create(self, request, *args, **kwargs):
         target_lock = Lock.objects.get(lock_id=request.data['lock_id'])
-        codes = target_lock.code_set.all()
-        for code in codes:
-            if code.expiry_time > datetime.datetime.now(timezone.utc) and code.used_at_time is None:
-                return Response({"Message": "Your code is: {}".format(code.zfill(4))}, status=status.HTTP_200_OK)
-        if request.user in target_lock.users.all():
-            #Need to implement custom expiry time
-            code_generator = secrets.SystemRandom()
-            code = code_generator.randint(0,9999)
-            temp = Code.objects.create(
-                code=code, 
-                lock=target_lock,
-                expiry_time=request.data['expiry_time'], 
-                created_by=request.user, 
-                creation_time=datetime.datetime.now(timezone.utc),
-                used_at_time=None,
-                )
-            return Response({"Message": "Your code is: {}".format(str(code).zfill(4))}, status=status.HTTP_200_OK)
-    except:
-        return Response({"Error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        if not target_lock.code_set.filter(expired=False):
+            if request.user in target_lock.users.all():
+                code_generator = secrets.SystemRandom()
+                code = code_generator.randint(0,9999)
+                temp = Code.objects.create(
+                    code=code, 
+                    lock=target_lock,
+                    expiry_time=request.data['expiry_time'], 
+                    created_by=request.user, 
+                    creation_time=datetime.datetime.now(timezone.utc),
+                    used_at_time=None,
+                    )
+                return Response({"Message": "Your code is: {}".format(str(code).zfill(4))}, status=status.HTTP_200_OK)
+            else:
+                return Response({"Message": "You do not have permissions to create a code for this lock"}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            return Response({"Message": "You already have a code for this lock"}, status=status.HTTP_200_OK)
+
 
 @api_view(['GET', 'POST'])
 def validate(request):
@@ -90,8 +96,9 @@ def validate(request):
             target_lock = Lock.objects.get(lock_id=lock_id)
         except:
             return Response({"Error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
-        if target_code.lock == target_lock and target_code.used_at_time is None and target_code.expiry_time > datetime.datetime.now(timezone.utc):
+        if target_code.lock == target_lock and not target_code.expired:
             target_code.used_at_time = datetime.datetime.now(timezone.utc)
+            target_code.expired = True
             target_code.save()
             return Response({"Message": "Code is valid"}, status=status.HTTP_200_OK)
         return Response({"Error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)

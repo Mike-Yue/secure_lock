@@ -81,7 +81,11 @@ class CodeViewSet(viewsets.ModelViewSet):
             else:
                 return Response({"Message": "You do not have permissions to create a code for this lock"}, status=status.HTTP_403_FORBIDDEN)
         else:
-            return Response({"Message": "You already have a code for this lock"}, status=status.HTTP_200_OK)
+            try:
+                existing_code = target_lock.code_set.get(expired=False)
+                return Response({"Message": "Your code is: {}".format(str(existing_code.code).zfill(4))}, status=status.HTTP_200_OK)
+            except:
+                return Response({"Message": "Something bad happened in the server"}, status=status.HTTP_403_FORBIDDEN)
 
 
 @api_view(['GET', 'POST'])

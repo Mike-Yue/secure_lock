@@ -69,12 +69,13 @@ class CodeViewSet(viewsets.ModelViewSet):
             if request.user in target_lock.users.all():
                 code_generator = secrets.SystemRandom()
                 code = code_generator.randint(0,9999)
+                offset = datetime.timezone(datetime.timedelta(hours=-8))
                 temp = Code.objects.create(
                     code=code, 
                     lock=target_lock,
                     expiry_time=request.data['expiry_time'], 
                     created_by=request.user, 
-                    creation_time=datetime.datetime.now(timezone.utc),
+                    creation_time=datetime.datetime.now(offset),
                     used_at_time=None,
                     )
                 return Response({"Message": "Your code is: {}".format(str(code).zfill(4))}, status=status.HTTP_200_OK)

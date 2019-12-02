@@ -61,7 +61,7 @@ class CodeViewSet(viewsets.ModelViewSet):
     serializer_class = CodeSerializer
 
     def get_queryset(self):
-        return Code.objects.filter(created_by=self.request.user, expired=False)
+        return Code.objects.filter(created_by=self.request.user)
     
     def create(self, request, *args, **kwargs):
         target_lock = Lock.objects.get(lock_id=request.data['lock_id'])
@@ -96,12 +96,17 @@ def validate(request):
     else:
         lock_id = request.data['lock_id']
         entry_code = request.data['code']
+        offset = datetime.timezone(datetime.timedelta(hours=-8))
         try:
             target_code = Code.objects.get(code=int(entry_code))
             target_lock = Lock.objects.get(lock_id=lock_id)
         except:
             return Response({"Error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         if target_code.lock == target_lock and not target_code.expired:
+            if target_code.expiry_time <= datetime.datetime.now(offset):
+                target_code.expired = True
+                target_code.save()
+                return Response({"Error": "Your code has expired"}, status=status.HTTP_403_FORBIDDEN)
             target_code.used_at_time = datetime.datetime.now(timezone.utc)
             target_code.expired = True
             target_code.save()
